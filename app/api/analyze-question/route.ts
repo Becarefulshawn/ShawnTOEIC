@@ -3,7 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import type { QuestionAnalysis } from "@/lib/types";
 import { isAuthenticated, unauthorizedResponse } from "@/lib/auth";
 
-const client = new Anthropic();
+const client = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
 
 const SYSTEM_PROMPT = `You are an expert TOEIC exam analyst specializing in diagnosing why students get wrong answers. When given an image of a TOEIC question (or a text description of one), provide a thorough analysis in JSON format.
 

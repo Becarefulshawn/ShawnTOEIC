@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Search, Loader2, BookOpen, ArrowLeftRight, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, Loader2, BookOpen, ArrowLeftRight, Trash2, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { saveWord, getWords, deleteWord } from "@/lib/storage";
 import type { WordEntry, WordAnalysis } from "@/lib/types";
 
@@ -152,9 +152,11 @@ function WordCard({ entry, onDelete }: { entry: WordEntry; onDelete: () => void 
 export default function WordLookup() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
   const [error, setError] = useState("");
   const [entries, setEntries] = useState<WordEntry[]>([]);
   const [currentResult, setCurrentResult] = useState<WordAnalysis | null>(null);
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // 初始化：只在客戶端執行
@@ -169,6 +171,7 @@ export default function WordLookup() {
     setLoading(true);
     setError("");
     setCurrentResult(null);
+    setAiSuggestion(null);
 
     try {
       const res = await fetch("/api/word-lookup", {
@@ -180,14 +183,6 @@ export default function WordLookup() {
       if (!res.ok) throw new Error(data.error ?? "Unknown error");
 
       const analysis: WordAnalysis = data.analysis;
-      const entry: WordEntry = {
-        id: generateId(),
-        word: analysis.word,
-        date: new Date().toISOString(),
-        result: analysis,
-      };
-      saveWord(entry);
-      setEntries(getWords());
       setCurrentResult(analysis);
       setQuery("");
     } catch (err) {
@@ -195,6 +190,39 @@ export default function WordLookup() {
     } finally {
       setLoading(false);
       inputRef.current?.focus();
+    }
+  };
+
+  const handleAddToMap = () => {
+    if (!currentResult) return;
+    const entry: WordEntry = {
+      id: generateId(),
+      word: currentResult.word,
+      date: new Date().toISOString(),
+      result: currentResult,
+    };
+    saveWord(entry);
+    setEntries(getWords());
+    setCurrentResult(null);
+    setAiSuggestion(null);
+  };
+
+  const handleAiSuggestion = async () => {
+    if (!currentResult) return;
+    setAiLoading(true);
+    try {
+      const res = await fetch("/api/word-suggestion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ analysis: currentResult }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Unknown error");
+      setAiSuggestion(data.suggestion);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "AI 建議失敗");
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -236,12 +264,100 @@ export default function WordLookup() {
         </div>
       )}
 
-      {/* inline result (latest) */}
+      {/* result display */}
       {currentResult && (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
-          <p className="text-xs font-semibold text-blue-600 mb-2 flex items-center gap-1">
-            <ArrowLeftRight size={12} /> 查詢結果已儲存至詞彙地圖
-          </p>
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          {/* result header */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-4 border-b border-gray-200">
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-gray-900">{currentResult.word}</span>
+              {currentResult.chineseTranslation && (
+                <span className="text-lg text-blue-600">{currentResult.chineseTranslation}</span>
+              )}
+            </div>
+            {currentResult.phonetic && (
+              <span className="text-sm text-gray-500 font-mono">{currentResult.phonetic}</span>
+            )}
+          </div>
+
+          {/* definitions */}
+          <div className="px-4 py-4 space-y-4">
+            {currentResult.definitions.map((group) => (
+              <div key={group.partOfSpeech}>
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                  {group.partOfSpeech}
+                </h4>
+                <ul className="space-y-1 text-sm text-gray-700">
+                  {group.definitions.map((def, i) => (
+                    <li key={i} className="flex gap-2">
+                      <span className="text-gray-400">{i + 1}.</span>
+                      <span>{def}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+
+            {/* synonyms & antonyms */}
+            {(currentResult.synonyms.length > 0 || currentResult.antonyms.length > 0) && (
+              <div className="flex gap-4 pt-2">
+                {currentResult.synonyms.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold uppercase text-gray-500 mb-1">同義詞</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {currentResult.synonyms.map((s) => (
+                        <span
+                          key={s}
+                          className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full"
+                        >
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {currentResult.antonyms.length > 0 && (
+                  <div>
+                    <h4 className="text-xs font-semibold uppercase text-gray-500 mb-1">反義詞</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {currentResult.antonyms.map((s) => (
+                        <span key={s} className="px-2 py-0.5 bg-red-100 text-red-800 text-xs rounded-full">
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* action buttons */}
+          <div className="border-t border-gray-200 px-4 py-4 space-y-2">
+            {/* AI suggestion result */}
+            {aiSuggestion && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
+                <p className="text-sm text-blue-900">{aiSuggestion}</p>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleAddToMap}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+              >
+                加入詞彙地圖
+              </button>
+              <button
+                onClick={handleAiSuggestion}
+                disabled={aiLoading}
+                className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors font-medium text-sm"
+              >
+                {aiLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                {aiLoading ? "分析中..." : "AI 建議"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
