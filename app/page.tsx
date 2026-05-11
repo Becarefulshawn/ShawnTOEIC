@@ -12,7 +12,7 @@ import LearningRecords from "@/components/LearningRecords";
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "lookup", label: "查單字", icon: <BookOpen size={18} /> },
   { id: "analyze", label: "分析錯題", icon: <Camera size={18} /> },
-  { id: "map", label: "詞彙地圖", icon: <Network size={18} /> },
+  { id: "map", label: "查詢歷史", icon: <Network size={18} /> },
   { id: "records", label: "學習紀錄", icon: <BarChart2 size={18} /> },
 ];
 

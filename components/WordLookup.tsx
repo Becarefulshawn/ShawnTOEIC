@@ -160,7 +160,7 @@ export default function WordLookup() {
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [wordDetail, setWordDetail] = useState<any>(null);
   const [wordDetailLoading, setWordDetailLoading] = useState(false);
-  const [autoSaveStatus, setAutoSaveStatus] = useState<"saved" | "exists" | null>(null);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<boolean>(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // 初始化：只在客戶端執行
@@ -191,45 +191,25 @@ export default function WordLookup() {
       setCurrentResult(analysis);
       setQuery("");
 
-      // 自動保存到詞彙地圖（檢查是否已存在）
-      const existingWords = getWords();
-      const wordExists = existingWords.some(
-        (w) => w.result.word.toLowerCase() === analysis.word.toLowerCase()
-      );
+      // 自動保存查詢到歷史記錄
+      const entry: WordEntry = {
+        id: generateId(),
+        word: analysis.word,
+        date: new Date().toISOString(),
+        result: analysis,
+      };
+      saveWord(entry);
+      setEntries(getWords());
+      setAutoSaveStatus(true);
 
-      if (!wordExists) {
-        const entry: WordEntry = {
-          id: generateId(),
-          word: analysis.word,
-          date: new Date().toISOString(),
-          result: analysis,
-        };
-        saveWord(entry);
-        setEntries(getWords());
-        setAutoSaveStatus("saved");
-      } else {
-        setAutoSaveStatus("exists");
-      }
+      // 3秒後清除状态显示
+      setTimeout(() => setAutoSaveStatus(false), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "查詢失敗，請再試一次");
     } finally {
       setLoading(false);
       inputRef.current?.focus();
     }
-  };
-
-  const handleAddToMap = () => {
-    if (!currentResult) return;
-    const entry: WordEntry = {
-      id: generateId(),
-      word: currentResult.word,
-      date: new Date().toISOString(),
-      result: currentResult,
-    };
-    saveWord(entry);
-    setEntries(getWords());
-    setCurrentResult(null);
-    setAiSuggestion(null);
   };
 
   const handleAiSuggestion = async () => {
@@ -268,47 +248,42 @@ export default function WordLookup() {
       const data = await res.json();
       if (res.ok) {
         setWordDetail(data.analysis);
+        // 自動保存到查詢歷史
+        const entry: WordEntry = {
+          id: generateId(),
+          word: data.analysis.word,
+          date: new Date().toISOString(),
+          result: {
+            word: data.analysis.word,
+            phonetic: data.analysis.phonetic,
+            chineseTranslation: data.analysis.chineseTranslation,
+            definitions: [
+              {
+                partOfSpeech: data.analysis.partOfSpeech,
+                definitions: [data.analysis.definition],
+                examples: [data.analysis.example],
+              },
+            ],
+            synonyms: data.analysis.synonyms || [],
+            antonyms: data.analysis.antonyms || [],
+            toeicSentences: [
+              {
+                sentence: data.analysis.example,
+                translation: data.analysis.exampleTranslation,
+                questionType: `${data.analysis.toeicFrequency} frequency`,
+              },
+            ],
+            notes: data.analysis.tip,
+          },
+        };
+        saveWord(entry);
+        setEntries(getWords());
       }
     } catch (err) {
       console.error("Failed to fetch word detail:", err);
     } finally {
       setWordDetailLoading(false);
     }
-  };
-
-  const handleAddWordToMap = () => {
-    if (!selectedWord || !wordDetail) return;
-
-    const entry: WordEntry = {
-      id: generateId(),
-      word: wordDetail.word,
-      date: new Date().toISOString(),
-      result: {
-        word: wordDetail.word,
-        phonetic: wordDetail.phonetic,
-        chineseTranslation: wordDetail.chineseTranslation,
-        definitions: [
-          {
-            partOfSpeech: wordDetail.partOfSpeech,
-            definitions: [wordDetail.definition],
-            examples: [wordDetail.example],
-          },
-        ],
-        synonyms: [],
-        antonyms: [],
-        toeicSentences: [
-          {
-            sentence: wordDetail.example,
-            translation: wordDetail.exampleTranslation,
-            questionType: `${wordDetail.toeicFrequency} frequency`,
-          },
-        ],
-        notes: wordDetail.tip,
-      },
-    };
-    saveWord(entry);
-    setSelectedWord(null);
-    setWordDetail(null);
   };
 
   return (
@@ -463,19 +438,9 @@ export default function WordLookup() {
           <div className="space-y-2">
             {/* auto-save status */}
             {autoSaveStatus && (
-              <div className={`border rounded-lg p-3 ${
-                autoSaveStatus === "saved"
-                  ? "bg-green-50 border-green-200"
-                  : "bg-gray-50 border-gray-200"
-              }`}>
-                <p className={`text-sm font-medium ${
-                  autoSaveStatus === "saved"
-                    ? "text-green-700"
-                    : "text-gray-700"
-                }`}>
-                  {autoSaveStatus === "saved"
-                    ? "✓ 已自動保存至詞彙地圖"
-                    : "已在詞彙地圖中"}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <p className="text-sm font-medium text-green-700">
+                  ✓ 已自動保存至查詢歷史
                 </p>
               </div>
             )}
@@ -595,13 +560,12 @@ export default function WordLookup() {
                   <p className="text-sm text-yellow-900">{wordDetail.tip}</p>
                 </div>
 
-                {/* add to map button */}
-                <button
-                  onClick={handleAddWordToMap}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
-                >
-                  加入詞彙地圖
-                </button>
+                {/* auto-save status */}
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <p className="text-sm font-medium text-green-700">
+                    ✓ 已自動保存至查詢歷史
+                  </p>
+                </div>
               </div>
             ) : null}
           </div>

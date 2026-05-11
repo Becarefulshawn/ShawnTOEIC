@@ -21,13 +21,16 @@ function WordNode({ entry, onDelete }: { entry: WordEntry; onDelete: () => void 
           {a.chineseTranslation && (
             <span className="text-sm text-gray-600">({a.chineseTranslation})</span>
           )}
+          <span className="text-xs text-gray-400 ml-auto">
+            {new Date(entry.date).toLocaleString("zh-TW")}
+          </span>
         </div>
         <button
           onClick={(e) => {
             e.stopPropagation();
             onDelete();
           }}
-          className="p-1.5 text-gray-400 hover:text-red-500 rounded transition-colors"
+          className="p-1.5 text-gray-400 hover:text-red-500 rounded transition-colors flex-shrink-0"
         >
           <Trash2 size={14} />
         </button>
@@ -99,11 +102,6 @@ function WordNode({ entry, onDelete }: { entry: WordEntry; onDelete: () => void 
               </div>
             </div>
           )}
-
-          {/* 查询日期 */}
-          <p className="text-xs text-gray-400">
-            {new Date(entry.date).toLocaleDateString("zh-TW")}
-          </p>
         </div>
       )}
     </div>
@@ -132,7 +130,7 @@ export default function WordMap() {
       {/* header */}
       <div>
         <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-          詞彙地圖
+          查詢歷史
         </h3>
         <input
           type="text"
@@ -147,13 +145,13 @@ export default function WordMap() {
       {filteredEntries.length === 0 ? (
         <div className="text-center py-16 text-gray-400">
           <BookOpen size={48} className="mx-auto mb-3 opacity-30" />
-          <p>還沒有單字記錄</p>
-          <p className="text-sm mt-1">在「查單字」中搜尋單字會顯示在這裡</p>
+          <p>還沒有查詢記錄</p>
+          <p className="text-sm mt-1">在「查單字」中搜尋單字會自動記錄在此</p>
         </div>
       ) : (
         <div>
           <p className="text-sm text-gray-600 mb-4">
-            共 {filteredEntries.length} 個單字
+            共 {filteredEntries.length} 次查詢
           </p>
           <div className="space-y-2">
             {filteredEntries.map((entry) => (

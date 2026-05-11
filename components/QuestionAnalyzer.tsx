@@ -49,47 +49,41 @@ function AnalysisCard({ record, onDelete }: { record: QuestionRecord; onDelete: 
       const data = await res.json();
       if (res.ok) {
         setVocabDetail(data.analysis);
+        // 自動保存到查詢歷史
+        const entry: WordEntry = {
+          id: generateId(),
+          word: data.analysis.word,
+          date: new Date().toISOString(),
+          result: {
+            word: data.analysis.word,
+            phonetic: data.analysis.phonetic,
+            chineseTranslation: data.analysis.chineseTranslation,
+            definitions: [
+              {
+                partOfSpeech: data.analysis.partOfSpeech,
+                definitions: [data.analysis.definition],
+                examples: [data.analysis.example],
+              },
+            ],
+            synonyms: data.analysis.synonyms || [],
+            antonyms: data.analysis.antonyms || [],
+            toeicSentences: [
+              {
+                sentence: data.analysis.example,
+                translation: data.analysis.exampleTranslation,
+                questionType: `${data.analysis.toeicFrequency} frequency`,
+              },
+            ],
+            notes: data.analysis.tip,
+          },
+        };
+        saveWord(entry);
       }
     } catch (err) {
       console.error("Failed to fetch vocabulary detail:", err);
     } finally {
       setVocabLoading(false);
     }
-  };
-
-  const handleAddToMap = () => {
-    if (!selectedVocab || !vocabDetail) return;
-
-    const entry: WordEntry = {
-      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
-      word: vocabDetail.word,
-      date: new Date().toISOString(),
-      result: {
-        word: vocabDetail.word,
-        phonetic: vocabDetail.phonetic,
-        chineseTranslation: vocabDetail.chineseTranslation,
-        definitions: [
-          {
-            partOfSpeech: vocabDetail.partOfSpeech,
-            definitions: [vocabDetail.definition],
-            examples: [vocabDetail.example],
-          },
-        ],
-        synonyms: [],
-        antonyms: [],
-        toeicSentences: [
-          {
-            sentence: vocabDetail.example,
-            translation: vocabDetail.exampleTranslation,
-            questionType: `${vocabDetail.toeicFrequency} frequency`,
-          },
-        ],
-        notes: vocabDetail.tip,
-      },
-    };
-    saveWord(entry);
-    setSelectedVocab(null);
-    setVocabDetail(null);
   };
 
   return (
@@ -287,13 +281,12 @@ function AnalysisCard({ record, onDelete }: { record: QuestionRecord; onDelete: 
                   <p className="text-sm text-yellow-900">{vocabDetail.tip}</p>
                 </div>
 
-                {/* add to map button */}
-                <button
-                  onClick={handleAddToMap}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
-                >
-                  加入詞彙地圖
-                </button>
+                {/* auto-save status */}
+                <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                  <p className="text-sm font-medium text-green-700">
+                    ✓ 已自動保存至查詢歷史
+                  </p>
+                </div>
               </div>
             ) : null}
           </div>

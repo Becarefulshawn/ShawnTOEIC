@@ -29,12 +29,7 @@ export function getWords(): WordEntry[] {
 
 export function saveWord(entry: WordEntry): void {
   const all = getWords();
-  // replace if same word exists (re-lookup)
-  const idx = all.findIndex(
-    (w) => w.word.toLowerCase() === entry.word.toLowerCase()
-  );
-  if (idx >= 0) all[idx] = entry;
-  else all.unshift(entry);
+  all.unshift(entry);
   save(KEYS.words, all);
 }
 
