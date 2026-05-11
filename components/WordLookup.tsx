@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Search, Loader2, BookOpen, ArrowLeftRight, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { saveWord, getWords, deleteWord } from "@/lib/storage";
 import type { WordEntry, WordAnalysis } from "@/lib/types";
@@ -153,9 +153,14 @@ export default function WordLookup() {
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [entries, setEntries] = useState<WordEntry[]>(() => getWords());
+  const [entries, setEntries] = useState<WordEntry[]>([]);
   const [currentResult, setCurrentResult] = useState<WordAnalysis | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // 初始化：只在客戶端執行
+  useEffect(() => {
+    setEntries(getWords());
+  }, []);
 
   const handleLookup = async (e?: React.FormEvent) => {
     e?.preventDefault();

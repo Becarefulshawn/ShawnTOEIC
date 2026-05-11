@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Upload, Loader2, Camera, Trash2, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, BookMarked, Type } from "lucide-react";
 import { saveQuestion, getQuestions, deleteQuestion } from "@/lib/storage";
 import type { QuestionRecord, QuestionAnalysis } from "@/lib/types";
@@ -133,8 +133,13 @@ export default function QuestionAnalyzer() {
   const [useText, setUseText] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [records, setRecords] = useState<QuestionRecord[]>(() => getQuestions());
+  const [records, setRecords] = useState<QuestionRecord[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // 初始化：只在客戶端執行
+  useEffect(() => {
+    setRecords(getQuestions());
+  }, []);
 
   const processFile = (file: File) => {
     if (!file.type.startsWith("image/")) {

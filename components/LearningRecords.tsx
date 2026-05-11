@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BarChart,
   Bar,
@@ -27,9 +27,16 @@ function StatCard({ label, value, icon }: { label: string; value: number; icon: 
 }
 
 export default function LearningRecords() {
-  const [stats, setStats] = useState(() => getWeeklyStats(8));
-  const [totalWords, setTotalWords] = useState(() => getWords().length);
-  const [totalQuestions, setTotalQuestions] = useState(() => getQuestions().length);
+  const [stats, setStats] = useState<ReturnType<typeof getWeeklyStats>>([]);
+  const [totalWords, setTotalWords] = useState(0);
+  const [totalQuestions, setTotalQuestions] = useState(0);
+
+  // 初始化：只在客戶端執行
+  useEffect(() => {
+    setStats(getWeeklyStats(8));
+    setTotalWords(getWords().length);
+    setTotalQuestions(getQuestions().length);
+  }, []);
 
   const refresh = () => {
     setStats(getWeeklyStats(8));
