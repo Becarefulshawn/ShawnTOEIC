@@ -1,9 +1,9 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextRequest, NextResponse } from "next/server";
 import type { QuestionAnalysis } from "@/lib/types";
 import { isAuthenticated, unauthorizedResponse } from "@/lib/auth";
 
-const client = new Anthropic();
+const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 const SYSTEM_PROMPT = `You are an expert TOEIC exam analyst specializing in diagnosing why students get wrong answers. When given an image of a TOEIC question (or a text description of one), provide a thorough analysis in JSON format.
 
@@ -38,29 +38,22 @@ export async function POST(req: NextRequest) {
       text?: string;
     };
 
-    const userContent: Anthropic.MessageParam["content"] = [];
+    const model = client.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }> = [];
 
     if (body.imageBase64) {
-      const mime = (body.mimeType ?? "image/jpeg") as
-        | "image/jpeg"
-        | "image/png"
-        | "image/gif"
-        | "image/webp";
-      userContent.push({
-        type: "image",
-        source: {
-          type: "base64",
-          media_type: mime,
+      const mime = body.mimeType ?? "image/jpeg";
+      parts.push({
+        inlineData: {
+          mimeType: mime,
           data: body.imageBase64,
         },
       });
-      userContent.push({
-        type: "text",
+      parts.push({
         text: "Please analyze this TOEIC question image.",
       });
     } else if (body.text) {
-      userContent.push({
-        type: "text",
+      parts.push({
         text: `Please analyze this TOEIC question:\n\n${body.text}`,
       });
     } else {
@@ -70,25 +63,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const response = await client.messages.create({
-      model: "claude-haiku-4-5",
-      max_tokens: 2048,
-      system: [
+    parts.unshift({ text: SYSTEM_PROMPT });
+
+    const response = await model.generateContent({
+      contents: [
         {
-          type: "text",
-          text: SYSTEM_PROMPT,
-          cache_control: { type: "ephemeral" },
+          role: "user",
+          parts: parts,
         },
       ],
-      messages: [{ role: "user", content: userContent }],
     });
 
-    const textBlock = response.content.find((b) => b.type === "text");
-    if (!textBlock || textBlock.type !== "text") {
-      throw new Error("No text response from Claude");
+    const text = response.response.text();
+    if (!text) {
+      throw new Error("No text response from Gemini");
     }
 
-    const raw = textBlock.text.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
+    const raw = text.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
     const analysis: QuestionAnalysis = JSON.parse(raw);
 
     return NextResponse.json({ analysis });
