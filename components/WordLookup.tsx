@@ -38,9 +38,14 @@ function WordCard({ entry, onDelete }: { entry: WordEntry; onDelete: () => void 
       >
         <div className="flex items-center gap-3">
           <div>
-            <span className="font-bold text-lg text-gray-900">{a.word}</span>
+            <div className="flex items-baseline gap-2">
+              <span className="font-bold text-lg text-gray-900">{a.word}</span>
+              {a.chineseTranslation && (
+                <span className="text-sm text-blue-600 font-medium">{a.chineseTranslation}</span>
+              )}
+            </div>
             {a.phonetic && (
-              <span className="ml-2 text-sm text-gray-400 font-mono">{a.phonetic}</span>
+              <span className="text-sm text-gray-400 font-mono">{a.phonetic}</span>
             )}
           </div>
           <div className="flex gap-1 flex-wrap">

@@ -11,6 +11,7 @@ You must respond with ONLY valid JSON matching this exact structure (no markdown
 {
   "word": "string",
   "phonetic": "string (IPA notation)",
+  "chineseTranslation": "string (Traditional Chinese translation of the word)",
   "definitions": [
     {
       "partOfSpeech": "string (noun/verb/adjective/adverb/etc)",

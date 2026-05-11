@@ -10,6 +10,7 @@ export interface WordEntry {
 export interface WordAnalysis {
   word: string;
   phonetic?: string;
+  chineseTranslation?: string;
   definitions: PartOfSpeechGroup[];
   synonyms: string[];
   antonyms: string[];
