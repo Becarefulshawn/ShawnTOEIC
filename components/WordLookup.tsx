@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Search, Loader2, BookOpen, ArrowLeftRight, Trash2, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import { Search, Loader2, BookOpen, ArrowLeftRight, Trash2, ChevronDown, ChevronUp, Sparkles, X } from "lucide-react";
 import { saveWord, getWords, deleteWord } from "@/lib/storage";
 import type { WordEntry, WordAnalysis } from "@/lib/types";
 
@@ -157,6 +157,9 @@ export default function WordLookup() {
   const [entries, setEntries] = useState<WordEntry[]>([]);
   const [currentResult, setCurrentResult] = useState<WordAnalysis | null>(null);
   const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
+  const [selectedWord, setSelectedWord] = useState<string | null>(null);
+  const [wordDetail, setWordDetail] = useState<any>(null);
+  const [wordDetailLoading, setWordDetailLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // 初始化：只在客戶端執行
@@ -229,6 +232,61 @@ export default function WordLookup() {
   const handleDelete = (id: string) => {
     deleteWord(id);
     setEntries(getWords());
+  };
+
+  const handleWordClick = async (word: string) => {
+    setSelectedWord(word);
+    setWordDetailLoading(true);
+    try {
+      const res = await fetch("/api/analyze-vocabulary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ word }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setWordDetail(data.analysis);
+      }
+    } catch (err) {
+      console.error("Failed to fetch word detail:", err);
+    } finally {
+      setWordDetailLoading(false);
+    }
+  };
+
+  const handleAddWordToMap = () => {
+    if (!selectedWord || !wordDetail) return;
+
+    const entry: WordEntry = {
+      id: generateId(),
+      word: wordDetail.word,
+      date: new Date().toISOString(),
+      result: {
+        word: wordDetail.word,
+        phonetic: wordDetail.phonetic,
+        chineseTranslation: wordDetail.chineseTranslation,
+        definitions: [
+          {
+            partOfSpeech: wordDetail.partOfSpeech,
+            definitions: [wordDetail.definition],
+            examples: [wordDetail.example],
+          },
+        ],
+        synonyms: [],
+        antonyms: [],
+        toeicSentences: [
+          {
+            sentence: wordDetail.example,
+            translation: wordDetail.exampleTranslation,
+            questionType: `${wordDetail.toeicFrequency} frequency`,
+          },
+        ],
+        notes: wordDetail.tip,
+      },
+    };
+    saveWord(entry);
+    setSelectedWord(null);
+    setWordDetail(null);
   };
 
   return (
@@ -317,7 +375,13 @@ export default function WordLookup() {
                       <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2">同義詞</h4>
                       <div className="flex flex-wrap gap-1">
                         {currentResult.synonyms.map((s) => (
-                          <Tag key={s} label={s} color="green" />
+                          <button
+                            key={s}
+                            onClick={() => handleWordClick(s)}
+                            className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 hover:bg-green-200 hover:text-green-900 transition-colors cursor-pointer"
+                          >
+                            {s}
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -327,7 +391,13 @@ export default function WordLookup() {
                       <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2">反義詞</h4>
                       <div className="flex flex-wrap gap-1">
                         {currentResult.antonyms.map((s) => (
-                          <Tag key={s} label={s} color="red" />
+                          <button
+                            key={s}
+                            onClick={() => handleWordClick(s)}
+                            className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 hover:bg-red-200 hover:text-red-900 transition-colors cursor-pointer"
+                          >
+                            {s}
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -394,6 +464,75 @@ export default function WordLookup() {
                 {aiLoading ? "分析中..." : "AI 建議"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* word detail modal */}
+      {selectedWord && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900">{selectedWord}</h3>
+              <button
+                onClick={() => {
+                  setSelectedWord(null);
+                  setWordDetail(null);
+                }}
+                className="p-2 hover:bg-white rounded-lg transition-colors"
+              >
+                <X size={20} className="text-gray-400" />
+              </button>
+            </div>
+
+            {wordDetailLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 size={24} className="animate-spin text-blue-600" />
+              </div>
+            ) : wordDetail ? (
+              <div className="p-6 space-y-4">
+                {/* pronunciation and translation */}
+                <div>
+                  {wordDetail.phonetic && (
+                    <p className="text-sm text-gray-500 font-mono mb-1">{wordDetail.phonetic}</p>
+                  )}
+                  <p className="text-lg font-semibold text-blue-600">{wordDetail.chineseTranslation}</p>
+                  <span className="inline-block mt-2 px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
+                    {wordDetail.partOfSpeech}
+                  </span>
+                  <span className="inline-block ml-2 px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full font-medium">
+                    {wordDetail.toeicFrequency === "high" ? "高頻" : wordDetail.toeicFrequency === "medium" ? "中頻" : "低頻"}
+                  </span>
+                </div>
+
+                {/* definition */}
+                <div>
+                  <h4 className="text-xs font-semibold uppercase text-gray-500 mb-1">定義</h4>
+                  <p className="text-sm text-gray-700">{wordDetail.definition}</p>
+                </div>
+
+                {/* example */}
+                <div>
+                  <h4 className="text-xs font-semibold uppercase text-gray-500 mb-1">例句</h4>
+                  <p className="text-sm text-gray-700 mb-1">{wordDetail.example}</p>
+                  <p className="text-xs text-gray-500 italic">{wordDetail.exampleTranslation}</p>
+                </div>
+
+                {/* study tip */}
+                <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                  <p className="text-xs font-semibold text-yellow-800 mb-1">🎯 學習提示</p>
+                  <p className="text-sm text-yellow-900">{wordDetail.tip}</p>
+                </div>
+
+                {/* add to map button */}
+                <button
+                  onClick={handleAddWordToMap}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                >
+                  加入詞彙地圖
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       )}
