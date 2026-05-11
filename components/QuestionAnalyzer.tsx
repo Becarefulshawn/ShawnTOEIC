@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Upload, Loader2, Camera, Trash2, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, BookMarked, Type, X, Sparkles } from "lucide-react";
 import { saveQuestion, getQuestions, deleteQuestion, saveWord } from "@/lib/storage";
 import type { QuestionRecord, QuestionAnalysis, WordEntry } from "@/lib/types";
+import AIAssistant from "./AIAssistant";
 
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -30,6 +31,11 @@ function AnalysisCard({ record, onDelete }: { record: QuestionRecord; onDelete: 
   const [vocabDetail, setVocabDetail] = useState<any>(null);
   const [vocabLoading, setVocabLoading] = useState(false);
   const a = record.result;
+
+  const handleAssistantConversationSave = (conversation: Array<{ role: string; content: string }>) => {
+    // 可以在這裡保存對話記錄到學習紀錄，例如添加到筆記或統計中
+    console.log("Assistant conversation saved:", conversation);
+  };
 
   const handleVocabClick = async (vocab: string) => {
     setSelectedVocab(vocab);
@@ -393,7 +399,20 @@ export default function QuestionAnalyzer() {
   const canSubmit = !loading && (useText ? textInput.trim().length > 0 : imageBase64 !== null);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      {/* AI Assistant */}
+      {expanded && (
+        <AIAssistant
+          context={{
+            questionText: a.questionText,
+            correctAnswer: a.correctAnswer,
+            explanation: a.explanation,
+            questionType: a.questionType,
+            toeicPart: a.toeicPart,
+          }}
+          onConversationSave={handleAssistantConversationSave}
+        />
+      )}
       {/* mode toggle */}
       <div className="flex gap-2">
         <button
