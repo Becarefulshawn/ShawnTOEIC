@@ -266,92 +266,129 @@ export default function WordLookup() {
 
       {/* result display */}
       {currentResult && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          {/* result header */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-4 border-b border-gray-200">
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-gray-900">{currentResult.word}</span>
-              {currentResult.chineseTranslation && (
-                <span className="text-lg text-blue-600">{currentResult.chineseTranslation}</span>
+        <div className="space-y-3">
+          {/* quick preview */}
+          <div className="bg-white rounded-xl border border-blue-200 overflow-hidden shadow-sm">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-blue-100">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <div className="flex items-baseline gap-3">
+                    <span className="text-3xl font-bold text-gray-900">{currentResult.word}</span>
+                    {currentResult.chineseTranslation && (
+                      <span className="text-base text-blue-600 font-medium">{currentResult.chineseTranslation}</span>
+                    )}
+                  </div>
+                  {currentResult.phonetic && (
+                    <span className="text-sm text-gray-500 font-mono mt-1">{currentResult.phonetic}</span>
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {currentResult.definitions.map((d) => (
+                  <Tag key={d.partOfSpeech} label={d.partOfSpeech} color="purple" />
+                ))}
+              </div>
+            </div>
+
+            {/* definitions */}
+            <div className="px-6 py-4 space-y-3">
+              {currentResult.definitions.map((group, idx) => (
+                <div key={group.partOfSpeech}>
+                  {idx > 0 && <div className="border-t border-gray-100 pt-3" />}
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
+                    {group.partOfSpeech}
+                  </h4>
+                  <ul className="space-y-1.5 text-sm text-gray-700">
+                    {group.definitions.map((def, i) => (
+                      <li key={i} className="flex gap-2">
+                        <span className="text-gray-400 flex-shrink-0">{i + 1}.</span>
+                        <span>{def}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+
+              {/* synonyms & antonyms */}
+              {(currentResult.synonyms.length > 0 || currentResult.antonyms.length > 0) && (
+                <div className="border-t border-gray-100 pt-3 flex gap-6">
+                  {currentResult.synonyms.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2">同義詞</h4>
+                      <div className="flex flex-wrap gap-1">
+                        {currentResult.synonyms.map((s) => (
+                          <Tag key={s} label={s} color="green" />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {currentResult.antonyms.length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2">反義詞</h4>
+                      <div className="flex flex-wrap gap-1">
+                        {currentResult.antonyms.map((s) => (
+                          <Tag key={s} label={s} color="red" />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
-            {currentResult.phonetic && (
-              <span className="text-sm text-gray-500 font-mono">{currentResult.phonetic}</span>
-            )}
           </div>
 
-          {/* definitions */}
-          <div className="px-4 py-4 space-y-4">
-            {currentResult.definitions.map((group) => (
-              <div key={group.partOfSpeech}>
-                <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">
-                  {group.partOfSpeech}
-                </h4>
-                <ul className="space-y-1 text-sm text-gray-700">
-                  {group.definitions.map((def, i) => (
-                    <li key={i} className="flex gap-2">
-                      <span className="text-gray-400">{i + 1}.</span>
-                      <span>{def}</span>
-                    </li>
+          {/* TOEIC examples */}
+          {currentResult.toeicSentences.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+              <div className="px-6 py-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-3">
+                  TOEIC 例句
+                </h3>
+                <div className="space-y-2.5">
+                  {currentResult.toeicSentences.map((s, i) => (
+                    <div key={i} className="bg-blue-50 rounded-lg p-3 border border-blue-100">
+                      <div className="flex items-start justify-between gap-2 mb-1.5">
+                        <p className="text-sm text-gray-800">{s.sentence}</p>
+                        <Tag label={s.questionType} color="blue" />
+                      </div>
+                      <p className="text-xs text-gray-600">{s.translation}</p>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </div>
-            ))}
+            </div>
+          )}
 
-            {/* synonyms & antonyms */}
-            {(currentResult.synonyms.length > 0 || currentResult.antonyms.length > 0) && (
-              <div className="flex gap-4 pt-2">
-                {currentResult.synonyms.length > 0 && (
-                  <div>
-                    <h4 className="text-xs font-semibold uppercase text-gray-500 mb-1">同義詞</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {currentResult.synonyms.map((s) => (
-                        <span
-                          key={s}
-                          className="px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded-full"
-                        >
-                          {s}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {currentResult.antonyms.length > 0 && (
-                  <div>
-                    <h4 className="text-xs font-semibold uppercase text-gray-500 mb-1">反義詞</h4>
-                    <div className="flex flex-wrap gap-1">
-                      {currentResult.antonyms.map((s) => (
-                        <span key={s} className="px-2 py-0.5 bg-red-100 text-red-800 text-xs rounded-full">
-                          {s}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          {/* notes if exists */}
+          {currentResult.notes && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <p className="text-xs font-semibold text-yellow-800 mb-1">💡 TOEIC 考試提示</p>
+              <p className="text-sm text-yellow-900">{currentResult.notes}</p>
+            </div>
+          )}
 
           {/* action buttons */}
-          <div className="border-t border-gray-200 px-4 py-4 space-y-2">
+          <div className="space-y-2">
             {/* AI suggestion result */}
             {aiSuggestion && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-2">
-                <p className="text-sm text-blue-900">{aiSuggestion}</p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-900">
+                  <span className="font-semibold">✓ AI 分析：</span> {aiSuggestion}
+                </p>
               </div>
             )}
 
             <div className="flex gap-2">
               <button
                 onClick={handleAddToMap}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm shadow-sm"
               >
                 加入詞彙地圖
               </button>
               <button
                 onClick={handleAiSuggestion}
                 disabled={aiLoading}
-                className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors font-medium text-sm"
+                className="flex-1 flex items-center justify-center gap-1.5 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm shadow-sm"
               >
                 {aiLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                 {aiLoading ? "分析中..." : "AI 建議"}
