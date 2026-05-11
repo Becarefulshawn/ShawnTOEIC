@@ -19,7 +19,9 @@ You must respond with ONLY valid JSON matching this exact structure (no markdown
   "partOfSpeech": "string (noun/verb/adjective/adverb/etc)",
   "example": "string (TOEIC-style example sentence in English)",
   "exampleTranslation": "string (Traditional Chinese translation of example)",
-  "tip": "string (TOEIC study tip specific to this word)"
+  "tip": "string (TOEIC study tip specific to this word)",
+  "synonyms": ["string", ...],
+  "antonyms": ["string", ...]
 }
 
 Rules:
@@ -27,7 +29,9 @@ Rules:
 - Frequency assessment must be based on TOEIC exam data
 - Example must be realistic for business/TOEIC context
 - All translations must be in Traditional Chinese (繁體中文)
-- Tip should give actionable advice for TOEIC preparation`;
+- Tip should give actionable advice for TOEIC preparation
+- Include 3-5 synonyms and 2-3 antonyms where applicable
+- Only include words that are relevant to TOEIC exam level`;
 
 export async function POST(req: NextRequest) {
   if (!isAuthenticated(req)) {

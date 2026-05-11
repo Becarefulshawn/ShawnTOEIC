@@ -237,6 +237,44 @@ function AnalysisCard({ record, onDelete }: { record: QuestionRecord; onDelete: 
                   <p className="text-xs text-gray-500 italic">{vocabDetail.exampleTranslation}</p>
                 </div>
 
+                {/* synonyms & antonyms */}
+                {(vocabDetail.synonyms?.length > 0 || vocabDetail.antonyms?.length > 0) && (
+                  <div className="border-t border-gray-200 pt-4 space-y-3">
+                    {vocabDetail.synonyms?.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2">同義詞</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {vocabDetail.synonyms.map((s: string) => (
+                            <button
+                              key={s}
+                              onClick={() => handleVocabClick(s)}
+                              className="inline-block px-2 py-1 bg-green-100 text-green-800 hover:bg-green-200 text-xs rounded-full font-medium transition-colors cursor-pointer"
+                            >
+                              {s}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {vocabDetail.antonyms?.length > 0 && (
+                      <div>
+                        <h4 className="text-xs font-semibold uppercase text-gray-500 mb-2">反義詞</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {vocabDetail.antonyms.map((s: string) => (
+                            <button
+                              key={s}
+                              onClick={() => handleVocabClick(s)}
+                              className="inline-block px-2 py-1 bg-red-100 text-red-800 hover:bg-red-200 text-xs rounded-full font-medium transition-colors cursor-pointer"
+                            >
+                              {s}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* study tip */}
                 <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
                   <p className="text-xs font-semibold text-yellow-800 mb-1">🎯 學習提示</p>
