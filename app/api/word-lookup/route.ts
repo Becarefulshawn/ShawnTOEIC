@@ -1,9 +1,9 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import type { WordAnalysis } from "@/lib/types";
 import { isAuthenticated, unauthorizedResponse } from "@/lib/auth";
 
-const client = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const client = new Anthropic();
 
 // Stable system prompt — cached across all word lookups
 const SYSTEM_PROMPT = `You are an expert TOEIC English tutor with deep knowledge of TOEIC exam vocabulary and question patterns. When given a word, provide a comprehensive analysis in JSON format.
@@ -51,27 +51,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Word is required" }, { status: 400 });
     }
 
-    const model = client.getGenerativeModel({ model: "gemini-2.0-flash" });
-    const response = await model.generateContent({
-      contents: [
+    const response = await client.messages.create({
+      model: "claude-haiku-4-5",
+      max_tokens: 2048,
+      system: [
+        {
+          type: "text",
+          text: SYSTEM_PROMPT,
+          cache_control: { type: "ephemeral" },
+        },
+      ],
+      messages: [
         {
           role: "user",
-          parts: [
-            {
-              text: `${SYSTEM_PROMPT}\n\nAnalyze the TOEIC word: "${word.trim()}"`,
-            },
-          ],
+          content: `Analyze the TOEIC word: "${word.trim()}"`,
         },
       ],
     });
 
-    const text = response.response.text();
-    if (!text) {
-      throw new Error("No text response from Gemini");
+    const textBlock = response.content.find((b) => b.type === "text");
+    if (!textBlock || textBlock.type !== "text") {
+      throw new Error("No text response from Claude");
     }
 
     // Strip potential markdown fences
-    const raw = text.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
+    const raw = textBlock.text.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
     const analysis: WordAnalysis = JSON.parse(raw);
 
     return NextResponse.json({ analysis });
