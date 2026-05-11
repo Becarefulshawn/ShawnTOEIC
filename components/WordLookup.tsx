@@ -240,34 +240,10 @@ export default function WordLookup() {
       {currentResult && (
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
           <p className="text-xs font-semibold text-blue-600 mb-2 flex items-center gap-1">
-            <ArrowLeftRight size={12} /> 最新查詢結果已儲存
+            <ArrowLeftRight size={12} /> 查詢結果已儲存至詞彙地圖
           </p>
         </div>
       )}
-
-      {/* history list */}
-      <div>
-        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">
-          單字記錄 ({entries.length})
-        </h3>
-        {entries.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">
-            <BookOpen size={48} className="mx-auto mb-3 opacity-30" />
-            <p>還沒有查詢記錄</p>
-            <p className="text-sm mt-1">輸入單字開始學習！</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {entries.map((entry) => (
-              <WordCard
-                key={entry.id}
-                entry={entry}
-                onDelete={() => handleDelete(entry.id)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

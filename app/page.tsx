@@ -1,16 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { BookOpen, Camera, BarChart2, LogOut } from "lucide-react";
+import { BookOpen, Camera, Network, BarChart2, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { TabId } from "@/lib/types";
 import WordLookup from "@/components/WordLookup";
 import QuestionAnalyzer from "@/components/QuestionAnalyzer";
+import WordMap from "@/components/WordMap";
 import LearningRecords from "@/components/LearningRecords";
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "lookup", label: "查單字", icon: <BookOpen size={18} /> },
   { id: "analyze", label: "分析錯題", icon: <Camera size={18} /> },
+  { id: "map", label: "詞彙地圖", icon: <Network size={18} /> },
   { id: "records", label: "學習紀錄", icon: <BarChart2 size={18} /> },
 ];
 
@@ -72,6 +74,7 @@ export default function Home() {
       <main className="max-w-2xl mx-auto px-4 py-6">
         {tab === "lookup" && <WordLookup />}
         {tab === "analyze" && <QuestionAnalyzer />}
+        {tab === "map" && <WordMap />}
         {tab === "records" && <LearningRecords />}
       </main>
     </div>

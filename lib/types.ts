@@ -58,4 +58,4 @@ export interface LearningStats {
   weekLabel: string; // "2024-W22"
 }
 
-export type TabId = "lookup" | "analyze" | "records";
+export type TabId = "lookup" | "analyze" | "map" | "records";
