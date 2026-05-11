@@ -12,8 +12,8 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { getWeeklyStats, getWords, getQuestions } from "@/lib/storage";
-import { BookOpen, Camera, TrendingUp, RefreshCw, ChevronDown, ChevronUp, X } from "lucide-react";
-import type { WordEntry } from "@/lib/types";
+import { BookOpen, Camera, TrendingUp, RefreshCw, ChevronDown, ChevronUp, X, AlertCircle } from "lucide-react";
+import type { WordEntry, QuestionRecord } from "@/lib/types";
 
 function StatCard({
   label,
@@ -49,26 +49,50 @@ export default function LearningRecords() {
   const [totalWords, setTotalWords] = useState(0);
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [words, setWords] = useState<WordEntry[]>([]);
+  const [questions, setQuestions] = useState<QuestionRecord[]>([]);
   const [expandChart, setExpandChart] = useState(false);
   const [expandBreakdown, setExpandBreakdown] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [showQuestionReviewModal, setShowQuestionReviewModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   // 初始化：只在客戶端執行
   useEffect(() => {
     const allWords = getWords();
+    const allQuestions = getQuestions();
     setStats(getWeeklyStats(8));
     setTotalWords(allWords.length);
-    setTotalQuestions(getQuestions().length);
+    setTotalQuestions(allQuestions.length);
     setWords(allWords);
+    setQuestions(allQuestions);
   }, []);
 
   const refresh = () => {
     const allWords = getWords();
+    const allQuestions = getQuestions();
     setStats(getWeeklyStats(8));
     setTotalWords(allWords.length);
-    setTotalQuestions(getQuestions().length);
+    setTotalQuestions(allQuestions.length);
     setWords(allWords);
+    setQuestions(allQuestions);
   };
+
+  // 按照 TOEIC Part 和 Question Type 分組錯題
+  const groupedQuestions = questions.reduce(
+    (acc, q) => {
+      const key = `${q.result.toeicPart} - ${q.result.questionType}`;
+      if (!acc[key]) {
+        acc[key] = [];
+      }
+      acc[key].push(q);
+      return acc;
+    },
+    {} as Record<string, QuestionRecord[]>
+  );
+
+  const categoryList = Object.entries(groupedQuestions).sort(
+    ([keyA], [keyB]) => keyA.localeCompare(keyB)
+  );
 
   const chartData = stats.map((s) => ({
     week: s.weekLabel.replace(/^\d{4}-/, ""),
@@ -101,7 +125,13 @@ export default function LearningRecords() {
             clickable={totalWords > 0}
             onClick={() => totalWords > 0 && setShowReviewModal(true)}
           />
-          <StatCard label="累積錯題" value={totalQuestions} icon={<Camera size={20} />} />
+          <StatCard
+            label="累積錯題"
+            value={totalQuestions}
+            icon={<Camera size={20} />}
+            clickable={totalQuestions > 0}
+            onClick={() => totalQuestions > 0 && setShowQuestionReviewModal(true)}
+          />
           <StatCard label="本週單字" value={thisWeek?.wordsLearned ?? 0} icon={<TrendingUp size={20} />} />
           <StatCard label="本週錯題" value={thisWeek?.questionsAnalyzed ?? 0} icon={<TrendingUp size={20} />} />
         </div>
@@ -181,7 +211,143 @@ export default function LearningRecords() {
         </div>
       </div>
 
-      {/* review modal */}
+      {/* question review modal */}
+      {showQuestionReviewModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
+          <div className="bg-white w-full max-h-[90vh] rounded-t-2xl overflow-hidden flex flex-col">
+            {/* header */}
+            <div className="sticky top-0 bg-gradient-to-r from-orange-50 to-red-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">累積錯題複習</h3>
+                <p className="text-sm text-gray-500 mt-1">共 {questions.length} 道題目</p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowQuestionReviewModal(false);
+                  setSelectedCategory(null);
+                }}
+                className="p-2 hover:bg-white rounded-lg transition-colors"
+              >
+                <X size={20} className="text-gray-400" />
+              </button>
+            </div>
+
+            {/* content */}
+            <div className="flex-1 overflow-y-auto">
+              {selectedCategory === null ? (
+                // Category list view
+                <div className="p-6 space-y-3">
+                  {categoryList.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                      <Camera size={40} className="opacity-30 mb-3" />
+                      <p className="text-sm">還沒有錯題記錄</p>
+                    </div>
+                  ) : (
+                    categoryList.map(([category, items]) => (
+                      <button
+                        key={category}
+                        onClick={() => setSelectedCategory(category)}
+                        className="w-full bg-white rounded-lg border border-gray-200 p-4 hover:border-orange-300 hover:bg-orange-50 transition-all text-left"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-semibold text-gray-900">{category}</h4>
+                            <p className="text-sm text-gray-500 mt-1">
+                              {items.length} 道題目
+                            </p>
+                          </div>
+                          <ChevronDown size={20} className="text-gray-400" />
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              ) : (
+                // Question detail view
+                <div className="p-6 space-y-4">
+                  <button
+                    onClick={() => setSelectedCategory(null)}
+                    className="mb-4 text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
+                  >
+                    ← 返回分類
+                  </button>
+                  {groupedQuestions[selectedCategory]?.map((q, idx) => (
+                    <div
+                      key={q.id}
+                      className="bg-white rounded-lg border border-gray-200 p-4 space-y-3"
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="text-sm font-semibold text-gray-700">
+                          題目 {idx + 1}
+                        </div>
+                        <span className="text-xs text-gray-400">
+                          {new Date(q.date).toLocaleDateString("zh-TW")}
+                        </span>
+                      </div>
+
+                      {/* question text */}
+                      <div className="bg-gray-50 rounded p-3">
+                        <p className="text-sm text-gray-800">{q.result.questionText}</p>
+                      </div>
+
+                      {/* correct answer */}
+                      <div className="bg-green-50 rounded p-3 border border-green-200">
+                        <p className="text-xs font-semibold text-green-800 mb-1">✓ 正確答案</p>
+                        <p className="text-sm text-green-900">{q.result.correctAnswer}</p>
+                      </div>
+
+                      {/* explanation */}
+                      <div className="bg-blue-50 rounded p-3">
+                        <p className="text-xs font-semibold text-blue-800 mb-1">💡 詳細解析</p>
+                        <p className="text-sm text-blue-900">{q.result.explanation}</p>
+                      </div>
+
+                      {/* traps */}
+                      {q.result.traps.length > 0 && (
+                        <div className="bg-yellow-50 rounded p-3">
+                          <p className="text-xs font-semibold text-yellow-800 mb-2">⚠️ 陷阱分析</p>
+                          <ul className="space-y-1">
+                            {q.result.traps.map((trap, i) => (
+                              <li key={i} className="text-xs text-yellow-900">
+                                • {trap}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+
+                      {/* key vocabulary */}
+                      {q.result.keyVocabulary.length > 0 && (
+                        <div>
+                          <p className="text-xs font-semibold text-gray-700 mb-2">📚 關鍵詞彙</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {q.result.keyVocabulary.map((vocab) => (
+                              <span
+                                key={vocab}
+                                className="inline-block px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded"
+                              >
+                                {vocab}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* study tip */}
+                      <div className="bg-indigo-50 rounded p-3 border border-indigo-200">
+                        <p className="text-xs font-semibold text-indigo-800 mb-1">🎯 學習提示</p>
+                        <p className="text-sm text-indigo-900">{q.result.studyTip}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* word review modal */}
       {showReviewModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
           <div className="bg-white w-full max-h-[90vh] rounded-t-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom">
