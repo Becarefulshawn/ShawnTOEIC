@@ -160,6 +160,7 @@ export default function WordLookup() {
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [wordDetail, setWordDetail] = useState<any>(null);
   const [wordDetailLoading, setWordDetailLoading] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<"saved" | "exists" | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // 初始化：只在客戶端執行
@@ -175,6 +176,7 @@ export default function WordLookup() {
     setError("");
     setCurrentResult(null);
     setAiSuggestion(null);
+    setAutoSaveStatus(null);
 
     try {
       const res = await fetch("/api/word-lookup", {
@@ -188,6 +190,26 @@ export default function WordLookup() {
       const analysis: WordAnalysis = data.analysis;
       setCurrentResult(analysis);
       setQuery("");
+
+      // 自動保存到詞彙地圖（檢查是否已存在）
+      const existingWords = getWords();
+      const wordExists = existingWords.some(
+        (w) => w.result.word.toLowerCase() === analysis.word.toLowerCase()
+      );
+
+      if (!wordExists) {
+        const entry: WordEntry = {
+          id: generateId(),
+          word: analysis.word,
+          date: new Date().toISOString(),
+          result: analysis,
+        };
+        saveWord(entry);
+        setEntries(getWords());
+        setAutoSaveStatus("saved");
+      } else {
+        setAutoSaveStatus("exists");
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "查詢失敗，請再試一次");
     } finally {
@@ -439,6 +461,25 @@ export default function WordLookup() {
 
           {/* action buttons */}
           <div className="space-y-2">
+            {/* auto-save status */}
+            {autoSaveStatus && (
+              <div className={`border rounded-lg p-3 ${
+                autoSaveStatus === "saved"
+                  ? "bg-green-50 border-green-200"
+                  : "bg-gray-50 border-gray-200"
+              }`}>
+                <p className={`text-sm font-medium ${
+                  autoSaveStatus === "saved"
+                    ? "text-green-700"
+                    : "text-gray-700"
+                }`}>
+                  {autoSaveStatus === "saved"
+                    ? "✓ 已自動保存至詞彙地圖"
+                    : "已在詞彙地圖中"}
+                </p>
+              </div>
+            )}
+
             {/* AI suggestion result */}
             {aiSuggestion && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -448,22 +489,14 @@ export default function WordLookup() {
               </div>
             )}
 
-            <div className="flex gap-2">
-              <button
-                onClick={handleAddToMap}
-                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm shadow-sm"
-              >
-                加入詞彙地圖
-              </button>
-              <button
-                onClick={handleAiSuggestion}
-                disabled={aiLoading}
-                className="flex-1 flex items-center justify-center gap-1.5 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm shadow-sm"
-              >
-                {aiLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-                {aiLoading ? "分析中..." : "AI 建議"}
-              </button>
-            </div>
+            <button
+              onClick={handleAiSuggestion}
+              disabled={aiLoading}
+              className="w-full flex items-center justify-center gap-1.5 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm shadow-sm"
+            >
+              {aiLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+              {aiLoading ? "分析中..." : "AI 建議"}
+            </button>
           </div>
         </div>
       )}
