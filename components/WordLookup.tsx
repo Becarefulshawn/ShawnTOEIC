@@ -160,7 +160,7 @@ export default function WordLookup() {
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [wordDetail, setWordDetail] = useState<any>(null);
   const [wordDetailLoading, setWordDetailLoading] = useState(false);
-  const [autoSaveStatus, setAutoSaveStatus] = useState<boolean>(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<boolean | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // 初始化：只在客戶端執行

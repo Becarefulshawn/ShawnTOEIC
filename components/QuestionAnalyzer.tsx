@@ -393,19 +393,6 @@ export default function QuestionAnalyzer() {
 
   return (
     <div className="space-y-6 relative">
-      {/* AI Assistant */}
-      {expanded && (
-        <AIAssistant
-          context={{
-            questionText: a.questionText,
-            correctAnswer: a.correctAnswer,
-            explanation: a.explanation,
-            questionType: a.questionType,
-            toeicPart: a.toeicPart,
-          }}
-          onConversationSave={handleAssistantConversationSave}
-        />
-      )}
       {/* mode toggle */}
       <div className="flex gap-2">
         <button
