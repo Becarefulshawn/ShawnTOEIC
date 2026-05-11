@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Upload, Loader2, Camera, Trash2, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, BookMarked, Type } from "lucide-react";
-import { saveQuestion, getQuestions, deleteQuestion } from "@/lib/storage";
-import type { QuestionRecord, QuestionAnalysis } from "@/lib/types";
+import { Upload, Loader2, Camera, Trash2, ChevronDown, ChevronUp, AlertCircle, CheckCircle2, BookMarked, Type, X, Sparkles } from "lucide-react";
+import { saveQuestion, getQuestions, deleteQuestion, saveWord } from "@/lib/storage";
+import type { QuestionRecord, QuestionAnalysis, WordEntry } from "@/lib/types";
 
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -26,7 +26,65 @@ function Tag({ label, color = "blue" }: { label: string; color?: "blue" | "green
 
 function AnalysisCard({ record, onDelete }: { record: QuestionRecord; onDelete: () => void }) {
   const [expanded, setExpanded] = useState(false);
+  const [selectedVocab, setSelectedVocab] = useState<string | null>(null);
+  const [vocabDetail, setVocabDetail] = useState<any>(null);
+  const [vocabLoading, setVocabLoading] = useState(false);
   const a = record.result;
+
+  const handleVocabClick = async (vocab: string) => {
+    setSelectedVocab(vocab);
+    setVocabLoading(true);
+    try {
+      const res = await fetch("/api/analyze-vocabulary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ word: vocab }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setVocabDetail(data.analysis);
+      }
+    } catch (err) {
+      console.error("Failed to fetch vocabulary detail:", err);
+    } finally {
+      setVocabLoading(false);
+    }
+  };
+
+  const handleAddToMap = () => {
+    if (!selectedVocab || !vocabDetail) return;
+
+    const entry: WordEntry = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+      word: vocabDetail.word,
+      date: new Date().toISOString(),
+      result: {
+        word: vocabDetail.word,
+        phonetic: vocabDetail.phonetic,
+        chineseTranslation: vocabDetail.chineseTranslation,
+        definitions: [
+          {
+            partOfSpeech: vocabDetail.partOfSpeech,
+            definitions: [vocabDetail.definition],
+            examples: [vocabDetail.example],
+          },
+        ],
+        synonyms: [],
+        antonyms: [],
+        toeicSentences: [
+          {
+            sentence: vocabDetail.example,
+            translation: vocabDetail.exampleTranslation,
+            questionType: `${vocabDetail.toeicFrequency} frequency`,
+          },
+        ],
+        notes: vocabDetail.tip,
+      },
+    };
+    saveWord(entry);
+    setSelectedVocab(null);
+    setVocabDetail(null);
+  };
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -104,7 +162,15 @@ function AnalysisCard({ record, onDelete }: { record: QuestionRecord; onDelete: 
             <div>
               <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500 mb-2">關鍵字彙</h4>
               <div className="flex flex-wrap gap-1">
-                {a.keyVocabulary.map((v) => <Tag key={v} label={v} color="blue" />)}
+                {a.keyVocabulary.map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => handleVocabClick(v)}
+                    className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 hover:bg-blue-200 hover:text-blue-900 transition-colors cursor-pointer"
+                  >
+                    {v}
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -118,6 +184,75 @@ function AnalysisCard({ record, onDelete }: { record: QuestionRecord; onDelete: 
               <p className="text-sm text-yellow-900">{a.studyTip}</p>
             </div>
           )}
+        </div>
+      )}
+
+      {/* vocabulary detail modal */}
+      {selectedVocab && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-gray-900">{selectedVocab}</h3>
+              <button
+                onClick={() => {
+                  setSelectedVocab(null);
+                  setVocabDetail(null);
+                }}
+                className="p-2 hover:bg-white rounded-lg transition-colors"
+              >
+                <X size={20} className="text-gray-400" />
+              </button>
+            </div>
+
+            {vocabLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 size={24} className="animate-spin text-blue-600" />
+              </div>
+            ) : vocabDetail ? (
+              <div className="p-6 space-y-4">
+                {/* pronunciation and translation */}
+                <div>
+                  {vocabDetail.phonetic && (
+                    <p className="text-sm text-gray-500 font-mono mb-1">{vocabDetail.phonetic}</p>
+                  )}
+                  <p className="text-lg font-semibold text-blue-600">{vocabDetail.chineseTranslation}</p>
+                  <span className="inline-block mt-2 px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
+                    {vocabDetail.partOfSpeech}
+                  </span>
+                  <span className="inline-block ml-2 px-2 py-1 bg-orange-100 text-orange-700 text-xs rounded-full font-medium">
+                    {vocabDetail.toeicFrequency === "high" ? "高頻" : vocabDetail.toeicFrequency === "medium" ? "中頻" : "低頻"}
+                  </span>
+                </div>
+
+                {/* definition */}
+                <div>
+                  <h4 className="text-xs font-semibold uppercase text-gray-500 mb-1">定義</h4>
+                  <p className="text-sm text-gray-700">{vocabDetail.definition}</p>
+                </div>
+
+                {/* example */}
+                <div>
+                  <h4 className="text-xs font-semibold uppercase text-gray-500 mb-1">例句</h4>
+                  <p className="text-sm text-gray-700 mb-1">{vocabDetail.example}</p>
+                  <p className="text-xs text-gray-500 italic">{vocabDetail.exampleTranslation}</p>
+                </div>
+
+                {/* study tip */}
+                <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                  <p className="text-xs font-semibold text-yellow-800 mb-1">🎯 學習提示</p>
+                  <p className="text-sm text-yellow-900">{vocabDetail.tip}</p>
+                </div>
+
+                {/* add to map button */}
+                <button
+                  onClick={handleAddToMap}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
+                >
+                  加入詞彙地圖
+                </button>
+              </div>
+            ) : null}
+          </div>
         </div>
       )}
     </div>
