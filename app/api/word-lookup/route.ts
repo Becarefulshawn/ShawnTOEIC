@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import type { WordAnalysis } from "@/lib/types";
+import { isAuthenticated, unauthorizedResponse } from "@/lib/auth";
 
 const client = new Anthropic();
 
@@ -39,6 +40,11 @@ Rules:
 - TOEIC sentences should reflect actual TOEIC vocabulary level and business context`;
 
 export async function POST(req: NextRequest) {
+  // 檢查認證
+  if (!isAuthenticated(req)) {
+    return unauthorizedResponse();
+  }
+
   try {
     const { word } = (await req.json()) as { word: string };
     if (!word?.trim()) {

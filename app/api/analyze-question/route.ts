@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import type { QuestionAnalysis } from "@/lib/types";
+import { isAuthenticated, unauthorizedResponse } from "@/lib/auth";
 
 const client = new Anthropic();
 
@@ -25,6 +26,11 @@ Rules:
 - The studyTip should give actionable advice for future similar questions`;
 
 export async function POST(req: NextRequest) {
+  // 檢查認證
+  if (!isAuthenticated(req)) {
+    return unauthorizedResponse();
+  }
+
   try {
     const body = (await req.json()) as {
       imageBase64?: string;

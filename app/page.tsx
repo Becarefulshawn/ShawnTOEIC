@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { BookOpen, Camera, BarChart2 } from "lucide-react";
+import { BookOpen, Camera, BarChart2, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 import type { TabId } from "@/lib/types";
 import WordLookup from "@/components/WordLookup";
 import QuestionAnalyzer from "@/components/QuestionAnalyzer";
@@ -15,19 +16,35 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
 
 export default function Home() {
   const [tab, setTab] = useState<TabId>("lookup");
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/auth");
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-gray-50">
       {/* header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
-          <div className="p-2 bg-blue-600 rounded-xl">
-            <BookOpen size={20} className="text-white" />
+        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-600 rounded-xl">
+              <BookOpen size={20} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">TOEIC 學習工具</h1>
+              <p className="text-xs text-gray-400">AI 驅動的單字查詢與錯題分析</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">TOEIC 學習工具</h1>
-            <p className="text-xs text-gray-400">AI 驅動的單字查詢與錯題分析</p>
-          </div>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            title="登出"
+          >
+            <LogOut size={16} />
+            <span>登出</span>
+          </button>
         </div>
 
         {/* tab bar */}
